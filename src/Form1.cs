@@ -9,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Runtime.InteropServices;
+using System.IO;
 
 namespace gCrop
 {
@@ -79,8 +80,8 @@ namespace gCrop
 		{
 			InitializeComponent();
 			pictureBox1.Height = (int)(pictureBox1.Width / Ratio);
-			this.Width = 1920 + 20;
-			this.Height = 1280 + 20 + SystemInformation.CaptionHeight;
+			this.Width = 1280 + 20;
+			this.Height = 856 + 20 + SystemInformation.CaptionHeight;
 		}
 
 		bool Panning = false;
@@ -212,15 +213,18 @@ namespace gCrop
 
 			saveheight = (int)(savewidth / Ratio + 0.5);
 			Bitmap savebitmap = new Bitmap(savewidth, saveheight);
+			Console.WriteLine("1");
 			Graphics g = Graphics.FromImage(savebitmap);
 			g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
 			g.DrawImage(PictureOriSize, new RectangleF(0, 0, savebitmap.Width, savebitmap.Height), new RectangleF(PLeft * PreviewScale, PTop * PreviewScale, PWidth * PreviewScale, PWidth * PreviewScale / Ratio + 0.5f), GraphicsUnit.Pixel);
 			g.Dispose();
+			Console.WriteLine("2");
 			ImageCodecInfo myImageCodecInfo = null;
 			System.Drawing.Imaging.Encoder myEncoder;
 			EncoderParameter myEncoderParameter;
 			EncoderParameters myEncoderParameters;
-			
+			Console.WriteLine("3");
+
 			ImageCodecInfo[] encoders;
 			encoders = ImageCodecInfo.GetImageEncoders();
 			for (int j = 0; j < encoders.Length; j++)
@@ -237,7 +241,11 @@ namespace gCrop
 			myEncoderParameters.Param[0] = myEncoderParameter;
 
 			int lastslash = FileName.LastIndexOf("\\");
-			string savename = FileName.Substring(0, lastslash) + "\\output\\" + FileName.Substring(lastslash + 1);
+			string outpath = FileName.Substring(0, lastslash) + "\\gCrop\\";
+			if (!Directory.Exists(outpath))
+				Directory.CreateDirectory(outpath);
+
+			string savename = outpath + FileName.Substring(lastslash + 1);
 			savebitmap.Save(savename, myImageCodecInfo, myEncoderParameters);
 
 		}
@@ -254,13 +262,19 @@ namespace gCrop
 				PLeft += 2;
 			if ((GetKeyState((int)Keys.Oemplus) & 0x8000) == 0x8000)
 			{
-				PLeft += 1;
-				PWidth -= 2;
+				if (PWidth > SaveWidth / PreviewScale)
+				{
+					PLeft += 1;
+					PWidth -= 2;
+				}
 			}
 			if ((GetKeyState((int)Keys.OemMinus) & 0x8000) == 0x8000)
 			{
-				PLeft -= 1;
-				PWidth += 2;
+				if (PWidth < MaxPWidth)
+				{
+					PLeft -= 1;
+					PWidth += 2;
+				}
 			}
 
 			if (PWidth > MaxPWidth)
