@@ -22,7 +22,7 @@ namespace gCrop
 		int PTop = 0;
 		int PWidth = 1;
 		int MaxPWidth = 1;
-		int SaveWidth = 1920;
+		int SaveWidth = 2880;
 
 		string FileName;
 		Bitmap PictureOriSize;
@@ -110,7 +110,30 @@ namespace gCrop
 			Panning = false;
 		}
 
-		private void Form1_DragDrop(object sender, DragEventArgs e)
+        protected override void OnMouseWheel(MouseEventArgs e)
+        {
+			if (e.Delta > 0)
+			{
+				if (PWidth > SaveWidth / PreviewScale)
+				{
+					PLeft += 5;
+					PWidth -= 10;
+				}
+			}
+			else
+			{
+				if (PWidth < MaxPWidth)
+				{
+					PLeft -= 5;
+					PWidth += 10;
+				}
+			}
+
+			UpdateRectangle();
+		}
+
+
+        private void Form1_DragDrop(object sender, DragEventArgs e)
 		{
 			string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
 			FileName = files[0];
@@ -135,7 +158,7 @@ namespace gCrop
 			{
 				PTop = (int)(Picture.Height - Picture.Width / Ratio) / 2;
 				PLeft = -1;
-				PWidth = (int)(Picture.Width / Ratio);
+				PWidth = (int)(Picture.Width);
 				MaxPWidth = PWidth;
 			}
 			timer1.Enabled = true;
@@ -181,33 +204,75 @@ namespace gCrop
 		private void tbSaveWidth_TextChanged(object sender, EventArgs e)
 		{
 			int width;
-			bool re = int.TryParse(textBox1.Text, out width);
-			if (re)
-				lbSaveHeight.Text = "x " + ((int)(width / Ratio + 0.5)).ToString();
-		}
-
-		private void r169_CheckedChanged(object sender, EventArgs e)
-		{
-			if (r169.Checked)
-				Ratio = 16 / 9f;
-			else if (r32.Checked)
-				Ratio = 3 / 2f;
-			int width;
-			bool re = int.TryParse(textBox1.Text, out width);
+			bool re = int.TryParse(tbRes.Text, out width);
 			if (re)
 			{
 				SaveWidth = width;
 				lbSaveHeight.Text = "x " + ((int)(width / Ratio + 0.5)).ToString();
-			}
 
-			this.Form1_Resize(null, null);
+				if ((float)Picture.Width / Picture.Height >= Ratio)
+				{
+					MaxPWidth = (int)(Picture.Height * Ratio);
+				}
+				else
+				{
+					MaxPWidth = (int)(Picture.Width);
+				}
+			}
 		}
 
-		private void button1_Click(object sender, EventArgs e)
+		private void rRation_CheckedChanged(object sender, EventArgs e)
+		{
+            float newratio = 1;
+            if (r169.Checked)
+            {
+                newratio = 16 / 9f;
+                tbrCustom.Enabled = false;
+            }
+            else if (r32.Checked)
+            {
+                newratio = 3 / 2f;
+                tbrCustom.Enabled = false;
+            }
+            else if (rCustom.Checked)
+            {
+                tbrCustom.Enabled = true;
+                bool re = float.TryParse(tbrCustom.Text, out newratio);
+                if (!re)
+                    return;
+                if (newratio > 5 || newratio < 0.2)
+                    return;
+            }
+
+            if (Ratio != newratio)
+            {
+                Ratio = newratio;
+                int width;
+                bool re = int.TryParse(tbRes.Text, out width);
+                if (re)
+                {
+                    SaveWidth = width;
+                    lbSaveHeight.Text = "x " + ((int)(width / Ratio + 0.5)).ToString();
+                }
+
+				if ((float)Picture.Width / Picture.Height >= Ratio)
+				{
+					MaxPWidth = (int)(Picture.Height * Ratio);
+				}
+				else
+				{
+					MaxPWidth = (int)(Picture.Width);
+				}
+
+				this.Form1_Resize(null, null);
+            }
+		}
+
+		private void btSave_Click(object sender, EventArgs e)
 		{
 			int savewidth, saveheight;
 			savewidth = SaveWidth;
-			bool re = int.TryParse(textBox1.Text, out savewidth);
+			bool re = int.TryParse(tbRes.Text, out savewidth);
 			if (!re)
 				return;
 
@@ -276,6 +341,14 @@ namespace gCrop
 					PWidth += 2;
 				}
 			}
+
+			UpdateRectangle();
+		}
+
+        private void UpdateRectangle()
+        {
+			if (Picture == null)
+				return;
 
 			if (PWidth > MaxPWidth)
 				PWidth = MaxPWidth;
