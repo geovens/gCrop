@@ -18,9 +18,9 @@ namespace gCrop
 	{
 		const int PreviewScale = 3;
 		float Ratio = 1.5f;
-		int PLeft = 0;
-		int PTop = 0;
-		int PWidth = 1;
+		float PLeft = 0;
+		float PTop = 0;
+		float PWidth = 1;
 		int MaxPWidth = 1;
 		int SaveWidth = 2880;
 
@@ -52,9 +52,9 @@ namespace gCrop
 								else
 								{
 									float zoomratio = (float)gi.ullArguments / LastZoomDistance;
-									int newPWidth = (int)(PWidth / zoomratio);
-									int newPLeft = PLeft - (int)((float)(gi.ptsLocation.x - pictureBox1.Left - Left) / pictureBox1.Width * (newPWidth - PWidth));
-									int newPTop = PTop - (int)((float)(gi.ptsLocation.y - pictureBox1.Top - Top) / pictureBox1.Height * (newPWidth - PWidth) / Ratio); ;
+									float newPWidth = PWidth / zoomratio;
+									float newPLeft = PLeft - (float)(gi.ptsLocation.x - pictureBox1.Left - Left) / pictureBox1.Width * (newPWidth - PWidth);
+									float newPTop = PTop - (float)(gi.ptsLocation.y - pictureBox1.Top - Top) / pictureBox1.Height * (newPWidth - PWidth) / Ratio;
 									PWidth = newPWidth;
 									PLeft = newPLeft;
 									PTop = newPTop;
@@ -99,8 +99,8 @@ namespace gCrop
 			if (!Panning)
 				return;
 
-			PLeft -= (int)((e.X - LastMouseX) / (float)pictureBox1.Width * PWidth);
-			PTop -= (int)((e.Y - LastMouseY) / (float)pictureBox1.Width * PWidth);
+			PLeft -= (e.X - LastMouseX) / (float)pictureBox1.Width * PWidth;
+			PTop -= (e.Y - LastMouseY) / (float)pictureBox1.Width * PWidth;
 			LastMouseX = e.X;
 			LastMouseY = e.Y;
 		}
@@ -117,6 +117,7 @@ namespace gCrop
 				if (PWidth > SaveWidth / PreviewScale)
 				{
 					PLeft += 5;
+					PTop += 5 / Ratio;
 					PWidth -= 10;
 				}
 			}
@@ -125,6 +126,7 @@ namespace gCrop
 				if (PWidth < MaxPWidth)
 				{
 					PLeft -= 5;
+					PTop -= 5 / Ratio;
 					PWidth += 10;
 				}
 			}
@@ -150,16 +152,16 @@ namespace gCrop
 			if ((float)Picture.Width / Picture.Height >= Ratio)
 			{
 				PTop = -1;
-				PLeft = (int)(Picture.Width - Picture.Height * Ratio) / 2;
-				PWidth = (int)(Picture.Height * Ratio);
-				MaxPWidth = PWidth;
+				PLeft = (Picture.Width - Picture.Height * Ratio) / 2;
+				PWidth = Picture.Height * Ratio;
+				MaxPWidth = (int)PWidth;
 			}
 			else
 			{
-				PTop = (int)(Picture.Height - Picture.Width / Ratio) / 2;
+				PTop = (Picture.Height - Picture.Width / Ratio) / 2;
 				PLeft = -1;
-				PWidth = (int)(Picture.Width);
-				MaxPWidth = PWidth;
+				PWidth = Picture.Width;
+				MaxPWidth = (int)PWidth;
 			}
 			timer1.Enabled = true;
 		}
@@ -330,6 +332,7 @@ namespace gCrop
 				if (PWidth > SaveWidth / PreviewScale)
 				{
 					PLeft += 1;
+					PTop += 1 / Ratio;
 					PWidth -= 2;
 				}
 			}
@@ -338,6 +341,7 @@ namespace gCrop
 				if (PWidth < MaxPWidth)
 				{
 					PLeft -= 1;
+					PTop -= 1 / Ratio;
 					PWidth += 2;
 				}
 			}
@@ -354,20 +358,25 @@ namespace gCrop
 				PWidth = MaxPWidth;
 			if (PWidth * PreviewScale < SaveWidth)
 				PWidth = SaveWidth / PreviewScale;
-			int PHeight = (int)(PWidth / Ratio + 0.5);
 			if (PLeft < 0)
 				PLeft = 0;
 			if (PTop < 0)
 				PTop = 0;
+			int PHeight = (int)(PWidth / Ratio + 0.5);
 			if (PLeft + PWidth >= Picture.Width)
 				PLeft = Picture.Width - PWidth - 1;
 			if (PTop + PHeight >= Picture.Height)
 				PTop = Picture.Height - PHeight - 1;
+
+			int drawPLeft = (int)(PLeft + 0.5);
+			int drawPTop = (int)(PTop + 0.5);
+			int drawPWidth = (int)(PWidth + 0.5);
+
 			if
 			(
-				LastPLeft != PLeft ||
-				LastPTop != PTop ||
-				LastPWidth != PWidth ||
+				LastPLeft != drawPLeft ||
+				LastPTop != drawPTop ||
+				LastPWidth != drawPWidth ||
 				LastPRatio != Ratio ||
 				LastBoxWidth != pictureBox1.Width ||
 				LastBoxHeight != pictureBox1.Height
@@ -375,12 +384,12 @@ namespace gCrop
 			{
 				Graphics g = Graphics.FromImage(pictureBox1.Image);
 				g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-				g.DrawImage(Picture, new RectangleF(0, 0, pictureBox1.Width, pictureBox1.Height), new RectangleF(PLeft, PTop, PWidth, PWidth / Ratio), GraphicsUnit.Pixel);
+				g.DrawImage(Picture, new RectangleF(0, 0, pictureBox1.Width, pictureBox1.Height), new RectangleF(drawPLeft, drawPTop, drawPWidth, drawPWidth / Ratio), GraphicsUnit.Pixel);
 				pictureBox1.Refresh();
 				g.Dispose();
-				LastPLeft = PLeft;
-				LastPTop = PTop;
-				LastPWidth = PWidth;
+				LastPLeft = drawPLeft;
+				LastPTop = drawPTop;
+				LastPWidth = drawPWidth;
 				LastPRatio = Ratio;
 				LastBoxWidth = pictureBox1.Width;
 				LastBoxHeight = pictureBox1.Height;
